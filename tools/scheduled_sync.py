@@ -40,13 +40,23 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 SYNC = ROOT / "hermes_usage_sync.py"
 MAX_LOG_BYTES = 1024 * 1024
 
+_SYNC_MODULE = None
+
+
+def sync_module():
+    """惰性加载 hermes-usage-sync 本体（复用它的路径规则与控制台编码处理）。"""
+    global _SYNC_MODULE
+    if _SYNC_MODULE is None:
+        spec = importlib.util.spec_from_file_location("hermes_usage_sync", SYNC)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        _SYNC_MODULE = module
+    return _SYNC_MODULE
+
 
 def default_log_path() -> pathlib.Path:
     """复用同步脚本的状态目录（不再重复一套路径规则）。"""
-    spec = importlib.util.spec_from_file_location("hermes_usage_sync", SYNC)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module.default_state_dir() / "sync.log"
+    return sync_module().default_state_dir() / "sync.log"
 
 
 def rotate(path: pathlib.Path, keep_bytes: int = 256 * 1024) -> None:
@@ -112,6 +122,10 @@ def _main(argv: list[str] | None = None) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     """兜底：任何意料之外的异常也只发一行，绝不把 traceback 丢给计划任务/cron。"""
+    try:
+        sync_module().configure_stdio()   # 窄编码控制台下中文输出不崩（同本体）
+    except Exception:
+        pass                              # 这一步失败也要继续，别因此中断同步
     try:
         return _main(argv)
     except Exception as exc:  # noqa: BLE001 —— 这里要的就是"兜住一切"

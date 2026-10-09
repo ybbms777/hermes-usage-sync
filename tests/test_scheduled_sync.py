@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import sqlite3
 import subprocess
 import sys
@@ -104,6 +105,21 @@ class TestScheduledWrapper(unittest.TestCase):
         self.log.write_text("x" * (2 * 1024 * 1024) + "\n", encoding="utf-8")
         self.run_wrapper(*self.args())
         self.assertLess(self.log.stat().st_size, 1024 * 1024)
+
+    def test_failure_line_survives_narrow_console_encoding(self):
+        """回归（windows CI 抓到过）：包装器自己也要处理窄编码，否则失败路径变 traceback。
+
+        用 PYTHONIOENCODING 复现 cp1252 环境，任何平台都能跑这条用例。
+        """
+        env = dict(os.environ, PYTHONIOENCODING="cp1252")
+        proc = subprocess.run(
+            [sys.executable, str(WRAPPER), "--log", str(self.log), "--",
+             *self.args(), "--cc-switch-db", str(self.cc) + ".missing"],
+            capture_output=True, text=True, errors="replace", env=env,
+        )
+        detail = "rc=%r stdout=%r stderr=%r" % (proc.returncode, proc.stdout, proc.stderr)
+        self.assertEqual(proc.returncode, sync.EXIT_NO_CC_DB, detail)
+        self.assertEqual(len(proc.stdout.strip().splitlines()), 1, detail)
 
 
 if __name__ == "__main__":
