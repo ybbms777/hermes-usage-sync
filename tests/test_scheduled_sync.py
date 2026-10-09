@@ -93,9 +93,10 @@ class TestScheduledWrapper(unittest.TestCase):
 
     def test_failure_prints_one_line_and_keeps_exit_code(self):
         proc = self.run_wrapper(*self.args(), "--cc-switch-db", str(self.cc) + ".missing")
-        self.assertEqual(proc.returncode, sync.EXIT_NO_CC_DB)
-        self.assertEqual(len(proc.stdout.strip().splitlines()), 1)
-        self.assertIn("失败", proc.stdout)
+        detail = "rc=%r stdout=%r stderr=%r" % (proc.returncode, proc.stdout, proc.stderr)
+        self.assertEqual(proc.returncode, sync.EXIT_NO_CC_DB, detail)
+        self.assertEqual(len(proc.stdout.strip().splitlines()), 1, detail)
+        self.assertIn("失败", proc.stdout, detail)
         self.assertIn("exit=%d" % sync.EXIT_NO_CC_DB, self.log.read_text(encoding="utf-8"))
 
     def test_log_rotation_caps_size(self):

@@ -65,7 +65,7 @@ def rotate(path: pathlib.Path, keep_bytes: int = 256 * 1024) -> None:
         pass
 
 
-def main(argv: list[str] | None = None) -> int:
+def _main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="hermes-usage-sync 的静默包装")
     parser.add_argument("--log", help="日志文件路径（默认 <状态目录>/sync.log）")
     parser.add_argument("extra", nargs=argparse.REMAINDER,
@@ -108,6 +108,15 @@ def main(argv: list[str] | None = None) -> int:
         # 失败才发声：任务计划 / Hermes cron 会把这行当结果发出去
         print("hermes-usage-sync 失败：%s（详见 %s）" % (summary, log_file))
     return proc.returncode
+
+
+def main(argv: list[str] | None = None) -> int:
+    """兜底：任何意料之外的异常也只发一行，绝不把 traceback 丢给计划任务/cron。"""
+    try:
+        return _main(argv)
+    except Exception as exc:  # noqa: BLE001 —— 这里要的就是"兜住一切"
+        print("hermes-usage-sync 包装器异常：%r" % (exc,))
+        return 30
 
 
 if __name__ == "__main__":
