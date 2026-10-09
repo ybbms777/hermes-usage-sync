@@ -64,17 +64,18 @@ python hermes_usage_sync.py                # 正式同步（幂等，可反复�
 
 第一次写入前，脚本会自动把 CC Switch 的库备份成 `cc-switch.db.hermes-usage-sync.bak`。
 
-建议每 10–30 分钟跑一次（Windows 计划任务 / cron / launchd）：
+建议每 10–30 分钟跑一次，用带静默包装的入口，成功时**不产生任何输出**（不会发通知/邮件），
+只在真的失败时打印一行：
 
-```powershell
-# Windows：注册计划任务，每 15 分钟一次
-schtasks /create /tn "hermes-usage-sync" /sc minute /mo 15 ^
-  /tr "python C:\path\to\hermes_usage_sync.py"
-```
+| 调度器 | 用法 |
+|---|---|
+| Windows 计划任务 | `schtasks /create /tn "hermes-usage-sync" /sc minute /mo 15 /tr "\"C:\Path\to\python.exe\" \"C:\Path\to\hermes-usage-sync\tools\scheduled_sync.py\""` |
+| cron / launchd | `*/15 * * * * /usr/bin/python3 /path/to/hermes-usage-sync/tools/scheduled_sync.py` |
+| Hermes 自身的 cron | `cronjob_manage(action="create", schedule="every 15m", no_agent=True, script="<launcher>.py")` —— 把定时器放进已经在后台跑的 Hermes 里，不必再挂系统计划任务 |
 
-```cron
-*/15 * * * * python3 /path/to/hermes_usage_sync.py 2>&1 | logger -t hermes-usage-sync
-```
+`tools/scheduled_sync.py` 每次运行会往 `<状态目录>/sync.log` 追加一行
+（`inserted=… duplicates=… mode=…`），超过 1MB 自动截断；退出码 0 时 stdout 为空，
+因此任务计划/cron 的"成功也发通知"问题不存在。
 
 ### 命令行
 
