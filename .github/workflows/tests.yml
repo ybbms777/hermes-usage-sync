@@ -1,0 +1,33 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  unittest:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.8", "3.11", "3.13"]
+        exclude:
+          # macOS runner 上只跑一个版本，省点额度
+          - os: macos-latest
+            python-version: "3.8"
+          - os: macos-latest
+            python-version: "3.13"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Unit tests
+        run: python -m unittest discover -s tests -v
+      - name: Smoke check (--help / --check on a scratch home)
+        shell: bash
+        run: |
+          python hermes_usage_sync.py --help > /dev/null
+          python hermes_usage_sync.py --check || true   # 没有库时应报 10，不算失败

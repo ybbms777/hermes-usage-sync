@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# 本工具/CC Switch/Hermes 的本地数据（绝不能进仓库）
+*.db
+*.db-wal
+*.db-shm
+*.sqlite3
+*.bak
+*.hermes-usage-sync.bak
+
+# 编辑器/系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
