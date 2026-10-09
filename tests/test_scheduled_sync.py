@@ -97,7 +97,9 @@ class TestScheduledWrapper(unittest.TestCase):
         detail = "rc=%r stdout=%r stderr=%r" % (proc.returncode, proc.stdout, proc.stderr)
         self.assertEqual(proc.returncode, sync.EXIT_NO_CC_DB, detail)
         self.assertEqual(len(proc.stdout.strip().splitlines()), 1, detail)
-        self.assertIn("失败", proc.stdout, detail)
+        # 只断言 ASCII 标记：窄编码控制台下中文会被替换成 '?'，断言中文字符会误判
+        self.assertIn("hermes-usage-sync", proc.stdout, detail)
+        self.assertIn("exit=%d" % sync.EXIT_NO_CC_DB, proc.stdout, detail)
         self.assertIn("exit=%d" % sync.EXIT_NO_CC_DB, self.log.read_text(encoding="utf-8"))
 
     def test_log_rotation_caps_size(self):
