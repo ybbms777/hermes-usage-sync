@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import contextlib
 import importlib.util
+import io
 import json
 import sqlite3
 import sys
@@ -315,6 +316,20 @@ class TestMaintenance(unittest.TestCase):
         payload = json.loads(buf.getvalue())
         self.assertEqual(payload["hermes"]["input_tokens"], 100)
         self.assertEqual(payload["ccSwitch"]["rows"], 1)
+
+    def test_chinese_output_survives_narrow_console_encoding(self):
+        """回归：cp1252 之类的窄编码控制台下，中文输出曾经直接抛 UnicodeEncodeError。"""
+        self.fx.add_usage()
+        narrow = io.TextIOWrapper(io.BytesIO(), encoding="ascii", errors="strict", newline="")
+        argv = ["--hermes-db", str(self.fx.hermes), "--cc-switch-db", str(self.fx.cc),
+                "--state-db", str(self.fx.state)]
+        with contextlib.redirect_stdout(narrow):
+            code = sync.main(argv)
+            sync.main(argv + ["--check"])
+            sync.main(argv + ["--json"])
+            narrow.flush()
+        self.assertEqual(code, 0)
+        self.assertEqual(len(self.fx.cc_rows()), 1)
 
     def test_missing_hermes_db(self):
         Path(self.fx.hermes).unlink()

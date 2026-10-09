@@ -910,7 +910,24 @@ def run(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def _configure_stdio() -> None:
+    """让中文输出在窄编码控制台（Windows cp1252 等）上也不崩。
+
+    只在**不改变流编码**的前提下把错误策略降级为 replace：能显示中文的终端照旧，
+    显示不了的终端把个别字符换成 '?'，而不是整条命令抛 UnicodeEncodeError 挂掉。
+    想要真正的 UTF-8 输出，设 PYTHONIOENCODING=utf-8 或在 Windows 上先
+    `chcp 65001`。
+    """
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            if hasattr(stream, "reconfigure"):
+                stream.reconfigure(errors="replace")
+        except Exception:
+            pass
+
+
 def main(argv: list[str] | None = None) -> int:
+    _configure_stdio()
     args = parse_args(sys.argv[1:] if argv is None else argv)
     try:
         return run(args)

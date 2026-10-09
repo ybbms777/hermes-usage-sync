@@ -95,6 +95,10 @@ schtasks /create /tn "hermes-usage-sync" /sc minute /mo 15 ^
 退出码：`0` 成功，`10` 找不到 Hermes 库，`11` Hermes 表结构不兼容，`20` 找不到 CC Switch 库，
 `21` CC Switch 表结构不兼容，`30` 写入失败，`40` 拒绝回填（防双计），`42` 需要人工确认。
 
+中文输出在窄编码控制台（Windows cp1252 等）上会自动降级成 `?` 而不是报
+`UnicodeEncodeError`；想看到完整中文，设 `PYTHONIOENCODING=utf-8`，或在 Windows 上先
+`chcp 65001`。
+
 ### 写入口径（为什么看板能正确显示）
 
 每一条写入的行都照 CC Switch **自己的**会话导入器（`session_usage_codex.rs`）的写法：
